@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Hand Gesture Tic Tac Toe - Visual Gestures</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .main-layout {
+            display: flex;
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .game-container {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+        }
+
+        .camera-container {
+            flex: 1;
+            min-width: 400px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            position: sticky;
+            top: 20px;
+        }
+
+        .camera-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 20px;
+            color: white;
+            text-align: center;
+        }
+
+        .camera-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .video-wrapper {
+            position: relative;
+            background: #000;
+            min-height: 300px;
+        }
+
+        #webcam {
+            width: 100%;
+            height: auto;
+            display: block;
+            transform: scaleX(-1);
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1);
+        }
+
+        .gesture-panel {
+            padding: 15px;
+            background: #f8f9fa;
+        }
+
+        .gesture-status {
+            background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            text-align: center;
+            font-size: 16px;
+            min-height: 70px;
+        }
+
+        /* VISUAL GESTURE INDICATOR */
+        .visual-gesture {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .gesture-icon {
+            font-size: 64px;
+            display: inline-block;
+            animation: pulse 1s infinite;
+        }
+
+        .gesture-label {
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 5px;
+            color: #667eea;
+        }
+
+        .gesture-direction {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .gesture-instructions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .gesture-card {
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+
+        .gesture-card.active {
+            background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+            border: 2px solid #667eea;
+            transform: scale(1.05);
+        }
+
+        .gesture-emoji {
+            font-size: 32px;
+            display: block;
+        }
+
+        .gesture-name {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .selected-cell {
+            background: #667eea60 !important;
+            border: 3px solid #667eea !important;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+            transform: scale(1.02);
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border: none;
+            border-radius: 12px;
+            font-size: 48px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cell:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .cell:disabled {
+            cursor: not-allowed;
+            opacity: 0.9;
+        }
+
+        .status {
+            text-align: center;
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .status.active {
+            background: #e3f2fd;
+            color: #667eea;
+        }
+
+        .status.winner {
+            background: #e8f5e9;
+            color: #27ae60;
+        }
+
+        .status.tie {
+            background: #fff3e0;
+            color: #f39c12;
+        }
+
+        .selection-panel {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .choice-buttons, .difficulty-buttons {
+            display: flex;
+            gap: 15px;
+            margin: 10px 0;
+        }
+
+        .choice-btn, .difficulty-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #667eea;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .choice-btn.selected, .difficulty-btn.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+        }
+
+        .btn-reset {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+
+        .btn-reset:hover {
+            transform: scale(1.02);
+        }
+
+        .direction-debug {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 11px;
+            color: #999;
+            font-family: monospace;
+        }
+
+        @media (max-width: 768px) {
+            .main-layout {
+                flex-direction: column;
+            }
+            .cell {
+                font-size: 36px;
+            }
+            .gesture-instructions {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .gesture-icon {
+                font-size: 48px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-layout">
+        <div class="game-container">
+            <h1 style="text-align: center;">🎮 Hand Gesture Tic Tac Toe</h1>
+            
+            <div class="selection-panel">
+                <div class="choice-buttons">
+                    <button class="choice-btn" id="choose-x">❌ Play as X</button>
+                    <button class="choice-btn" id="choose-o">⭕ Play as O</button>
+                </div>
+                <div class="difficulty-buttons">
+                    <button class="difficulty-btn selected" data-diff="easy">😊 Easy</button>
+                    <button class="difficulty-btn" data-diff="medium">🤔 Medium</button>
+                    <button class="difficulty-btn" data-diff="hard">🤖 Hard</button>
+                </div>
+            </div>
+            
+            <div class="status active" id="status">Choose your symbol to start!</div>
+            
+            <div class="board" id="board">
+                <button class="cell" data-index="0"></button>
+                <button class="cell" data-index="1"></button>
+                <button class="cell" data-index="2"></button>
+                <button class="cell" data-index="3"></button>
+                <button class="cell" data-index="4"></button>
+                <button class="cell" data-index="5"></button>
+                <button class="cell" data-index="6"></button>
+                <button class="cell" data-index="7"></button>
+                <button class="cell" data-index="8"></button>
+            </div>
+
+            <button class="btn-reset" id="reset-btn">🔄 New Game</button>
+        </div>
+
+        <div class="camera-container">
+            <div class="camera-header">
+                <h3>✋ Hand Gesture Control</h3>
+            </div>
+            <div class="video-wrapper">
+                <video id="webcam" autoplay playsinline></video>
+                <canvas id="canvas"></canvas>
+            </div>
+            <div class="gesture-panel">
+                <!-- VISUAL GESTURE INDICATOR -->
+                <div class="visual-gesture" id="visual-gesture">
+                    <div class="gesture-icon" id="gesture-icon">✋</div>
+                    <div class="gesture-label" id="gesture-label">Waiting for hand...</div>
+                    <div class="gesture-direction" id="gesture-direction">Show your hand to camera</div>
+                </div>
+                
+                <div class="gesture-status" id="gesture-status">
+                    👋 Loading camera...
+                </div>
+                
+                <div class="gesture-instructions" id="gesture-instructions">
+                    <div class="gesture-card" data-gesture="left">
+                        <span class="gesture-emoji">👈</span>
+                        <span class="gesture-name">Wave LEFT</span>
+                        <small>Move LEFT</small>
+                    </div>
+                    <div class="gesture-card" data-gesture="right">
+                        <span class="gesture-emoji">👉</span>
+                        <span class="gesture-name">Wave RIGHT</span>
+                        <small>Move RIGHT</small>
+                    </div>
+                    <div class="gesture-card" data-gesture="up">
+                        <span class="gesture-emoji">☝️</span>
+                        <span class="gesture-name">Wave UP</span>
+                        <small>Move UP</small>
+                    </div>
+                    <div class="gesture-card" data-gesture="down">
+                        <span class="gesture-emoji">👇</span>
+                        <span class="gesture-name">Wave DOWN</span>
+                        <small>Move DOWN</small>
+                    </div>
+                    <div class="gesture-card" data-gesture="place">
+                        <span class="gesture-emoji">🤚</span>
+                        <span class="gesture-name">Open Palm</span>
+                        <small>Place symbol</small>
+                    </div>
+                </div>
+                
+                <div id="selected-display" style="text-align: center; margin-top: 10px; font-weight: bold; color: #667eea;">
+                    📍 Selected: Center
+                </div>
+                <div class="direction-debug" id="debug-info"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MediaPipe Hands Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+    <script>
+        // ============================================
+        // GAME STATE
+        // ============================================
+        let currentSelectedCell = 4;
+        let game = null;
+        let lastGestureTime = 0;
+        const GESTURE_COOLDOWN = 600;
+        
+        // Current detected gesture for visual display
+        let currentDetectedGesture = null;
+        let gestureTimeout = null;
+
+        // ============================================
+        // VISUAL GESTURE FEEDBACK
+        // ============================================
+        function updateVisualGesture(gestureType, gestureName, gestureEmoji) {
+            const iconElement = document.getElementById('gesture-icon');
+            const labelElement = document.getElementById('gesture-label');
+            const directionElement = document.getElementById('gesture-direction');
+            
+            // Highlight the corresponding gesture card
+            document.querySelectorAll('.gesture-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            if (gestureType) {
+                const activeCard = document.querySelector(`.gesture-card[data-gesture="${gestureType}"]`);
+                if (activeCard) {
+                    activeCard.classList.add('active');
+                }
+            }
+            
+            // Update the big visual indicator
+            iconElement.innerHTML = gestureEmoji;
+            labelElement.innerHTML = gestureName;
+            directionElement.innerHTML = '✓ Gesture detected!';
+            directionElement.style.color = '#4CAF50';
+            
+            // Clear previous timeout
+            if (gestureTimeout) {
+                clearTimeout(gestureTimeout);
+            }
+            
+            // Reset after 2 seconds if no new gesture
+            gestureTimeout = setTimeout(() => {
+                if (currentDetectedGesture === null) {
+                    iconElement.innerHTML = '✋';
+                    labelElement.innerHTML = 'Waiting for gesture...';
+                    directionElement.innerHTML = 'Show a gesture to control the game';
+                    directionElement.style.color = '#666';
+                    document.querySelectorAll('.gesture-card').forEach(card => {
+                        card.classList.remove('active');
+                    });
+                }
+            }, 2000);
+        }
+        
+        function showDetectedGesture(gesture) {
+            currentDetectedGesture = gesture;
+            switch(gesture) {
+                case 'left':
+                    updateVisualGesture('left', 'Wave LEFT Detected!', '👈');
+                    break;
+                case 'right':
+                    updateVisualGesture('right', 'Wave RIGHT Detected!', '👉');
+                    break;
+                case 'up':
+                    updateVisualGesture('up', 'Wave UP Detected!', '☝️');
+                    break;
+                case 'down':
+                    updateVisualGesture('down', 'Wave DOWN Detected!', '👇');
+                    break;
+                case 'place':
+                    updateVisualGesture('place', 'OPEN PALM - Placing Symbol!', '🤚');
+                    break;
+                default:
+                    updateVisualGesture(null, 'Unknown gesture', '❓');
+            }
+        }
+
+        // ============================================
+        // TIC TAC TOE CLASS
+        // ============================================
+        class TicTacToe {
+            constructor() {
+                this.board = Array(9).fill(null);
+                this.currentPlayer = 'X';
+                this.playerSymbol = 'X';
+                this.botSymbol = 'O';
+                this.gameOver = false;
+                this.winner = null;
+                this.difficulty = 'easy';
+                this.init();
+            }
+
+            init() {
+                this.boardElement = document.getElementById('board');
+                this.statusElement = document.getElementById('status');
+                
+                this.boardElement.addEventListener('click', (e) => {
+                    const cell = e.target.closest('.cell');
+                    if (cell) {
+                        const index = parseInt(cell.dataset.index);
+                        if (!this.gameOver && this.currentPlayer === this.playerSymbol && !this.board[index]) {
+                            this.makeMove(index);
+                        }
+                    }
+                });
+                
+                document.getElementById('reset-btn').addEventListener('click', () => this.reset());
+                document.getElementById('choose-x').addEventListener('click', () => this.setPlayerSymbol('X'));
+                document.getElementById('choose-o').addEventListener('click', () => this.setPlayerSymbol('O'));
+                
+                document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('selected'));
+                        btn.classList.add('selected');
+                        this.difficulty = btn.dataset.diff;
+                        this.reset();
+                    });
+                });
+                
+                this.updateUI();
+            }
+
+            setPlayerSymbol(symbol) {
+                this.playerSymbol = symbol;
+                this.botSymbol = symbol === 'X' ? 'O' : 'X';
+                this.currentPlayer = 'X';
+                
+                document.querySelectorAll('.choice-btn').forEach(btn => btn.classList.remove('selected'));
+                document.getElementById(`choose-${symbol.toLowerCase()}`).classList.add('selected');
+                
+                this.reset();
+            }
+
+            makeMove(index, isBot = false) {
+                if (this.gameOver) return false;
+                if (this.board[index] !== null) return false;
+                
+                const expectedPlayer = isBot ? this.botSymbol : this.playerSymbol;
+                if (this.currentPlayer !== expectedPlayer) return false;
+                
+                this.board[index] = this.currentPlayer;
+                this.updateUI();
+                
+                if (this.checkWin(this.currentPlayer)) {
+                    this.gameOver = true;
+                    this.winner = this.currentPlayer;
+                    this.statusElement.textContent = this.currentPlayer === this.playerSymbol ? '🎉 YOU WIN! 🎉' : '🤖 BOT WINS! 🤖';
+                    this.statusElement.className = 'status winner';
+                    return true;
+                }
+                
+                if (this.board.every(cell => cell !== null)) {
+                    this.gameOver = true;
+                    this.statusElement.textContent = "IT'S A TIE! 🤝";
+                    this.statusElement.className = 'status tie';
+                    return true;
+                }
+                
+                this.currentPlayer = this.currentPlayer === 'X' ? 'O' : 'X';
+                this.statusElement.textContent = this.currentPlayer === this.playerSymbol ? 
+                    `YOUR TURN (${this.currentPlayer})` : `BOT THINKING... (${this.currentPlayer})`;
+                this.statusElement.className = 'status active';
+                
+                if (!this.gameOver && this.currentPlayer === this.botSymbol) {
+                    setTimeout(() => this.botMove(), 500);
+                }
+                
+                return true;
+            }
+
+            botMove() {
+                if (this.gameOver || this.currentPlayer !== this.botSymbol) return;
+                
+                let moveIndex = -1;
+                const emptySpots = [];
+                for (let i = 0; i < 9; i++) {
+                    if (!this.board[i]) emptySpots.push(i);
+                }
+                if (emptySpots.length === 0) return;
+                
+                if (this.difficulty === 'easy') {
+                    moveIndex = emptySpots[Math.floor(Math.random() * emptySpots.length)];
+                } else if (this.difficulty === 'medium') {
+                    moveIndex = this.getSmartMove(emptySpots);
+                } else {
+                    moveIndex = this.getBestMove();
+                }
+                
+                if (moveIndex !== -1) {
+                    this.makeMove(moveIndex, true);
+                }
+            }
+
+            getSmartMove(emptySpots) {
+                for (let i of emptySpots) {
+                    this.board[i] = this.botSymbol;
+                    if (this.checkWin(this.botSymbol)) {
+                        this.board[i] = null;
+                        return i;
+                    }
+                    this.board[i] = null;
+                }
+                
+                for (let i of emptySpots) {
+                    this.board[i] = this.playerSymbol;
+                    if (this.checkWin(this.playerSymbol)) {
+                        this.board[i] = null;
+                        return i;
+                    }
+                    this.board[i] = null;
+                }
+                
+                if (!this.board[4]) return 4;
+                return emptySpots[Math.floor(Math.random() * emptySpots.length)];
+            }
+
+            getBestMove() {
+                let bestScore = -Infinity;
+                let bestMove = -1;
+                
+                for (let i = 0; i < 9; i++) {
+                    if (!this.board[i]) {
+                        this.board[i] = this.botSymbol;
+                        let score = this.minimax(this.board, 0, false);
+                        this.board[i] = null;
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestMove = i;
+                        }
+                    }
+                }
+                return bestMove;
+            }
+
+            minimax(board, depth, isMaximizing) {
+                if (this.checkWinOnBoard(board, this.botSymbol)) return 10 - depth;
+                if (this.checkWinOnBoard(board, this.playerSymbol)) return depth - 10;
+                if (board.every(cell => cell !== null)) return 0;
+                
+                if (isMaximizing) {
+                    let best = -Infinity;
+                    for (let i = 0; i < 9; i++) {
+                        if (!board[i]) {
+                            board[i] = this.botSymbol;
+                            best = Math.max(best, this.minimax(board, depth + 1, false));
+                            board[i] = null;
+                        }
+                    }
+                    return best;
+                } else {
+                    let best = Infinity;
+                    for (let i = 0; i < 9; i++) {
+                        if (!board[i]) {
+                            board[i] = this.playerSymbol;
+                            best = Math.min(best, this.minimax(board, depth + 1, true));
+                            board[i] = null;
+                        }
+                    }
+                    return best;
+                }
+            }
+
+            checkWinOnBoard(board, player) {
+                const patterns = [
+                    [0,1,2], [3,4,5], [6,7,8],
+                    [0,3,6], [1,4,7], [2,5,8],
+                    [0,4,8], [2,4,6]
+                ];
+                for (let pattern of patterns) {
+                    if (pattern.every(idx => board[idx] === player)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            checkWin(player) {
+                return this.checkWinOnBoard(this.board, player);
+            }
+
+            updateUI() {
+                const cells = document.querySelectorAll('.cell');
+                for (let i = 0; i < 9; i++) {
+                    cells[i].textContent = this.board[i] || '';
+                }
+                this.updateSelectedHighlight();
+            }
+
+            updateSelectedHighlight() {
+                const cells = document.querySelectorAll('.cell');
+                for (let i = 0; i < cells.length; i++) {
+                    cells[i].classList.remove('selected-cell');
+                    if (i === currentSelectedCell && !this.gameOver && this.currentPlayer === this.playerSymbol) {
+                        cells[i].classList.add('selected-cell');
+                    }
+                }
+                
+                const positions = ['Top-Left', 'Top-Center', 'Top-Right', 'Middle-Left', 'Center', 'Middle-Right', 'Bottom-Left', 'Bottom-Center', 'Bottom-Right'];
+                document.getElementById('selected-display').innerHTML = `📍 Selected: ${positions[currentSelectedCell]}`;
+            }
+
+            reset() {
+                this.board = Array(9).fill(null);
+                this.gameOver = false;
+                this.winner = null;
+                this.currentPlayer = 'X';
+                this.updateUI();
+                this.statusElement.textContent = this.currentPlayer === this.playerSymbol ? 
+                    `YOUR TURN (${this.playerSymbol})` : `BOT'S TURN (${this.botSymbol})`;
+                this.statusElement.className = 'status active';
+                currentSelectedCell = 4;
+                this.updateSelectedHighlight();
+                
+                if (!this.gameOver && this.currentPlayer === this.botSymbol) {
+                    setTimeout(() => this.botMove(), 500);
+                }
+            }
+        }
+
+        // ============================================
+        // MEDIAPIPE HAND GESTURE DETECTION
+        // ============================================
+        
+        let previousPalmX = null;
+        let previousPalmY = null;
+        let lastWaveTime = 0;
+        let lastDirectionX = null;
+        let lastDirectionY = null;
+        let waveConfirmationX = false;
+        let waveConfirmationY = false;
+        
+        function detectGesture(landmarks) {
+            if (!game) return;
+            
+            const wrist = landmarks[0];
+            const indexTip = landmarks[8];
+            const middleTip = landmarks[12];
+            const ringTip = landmarks[16];
+            const pinkyTip = landmarks[20];
+            
+            // Calculate palm center
+            let palmX = 0, palmY = 0;
+            let count = 0;
+            for (let i = 0; i <= 20; i += 5) {
+                palmX += landmarks[i].x;
+                palmY += landmarks[i].y;
+                count++;
+            }
+            palmX = palmX / count;
+            palmY = palmY / count;
+            
+            const now = Date.now();
+            
+            // ============ HORIZONTAL WAVE ============
+            if (previousPalmX !== null) {
+                const deltaX = palmX - previousPalmX;
+                
+                if (Math.abs(deltaX) > 0.05 && (now - lastWaveTime) > 150) {
+                    const direction = deltaX > 0 ? 'right' : 'left';
+                    
+                    if (lastDirectionX === direction && !waveConfirmationX) {
+                        waveConfirmationX = true;
+                        showDetectedGesture(direction);
+                        
+                        if ((now - lastGestureTime) > GESTURE_COOLDOWN && !game.gameOver && game.currentPlayer === game.playerSymbol) {
+                            lastGestureTime = now;
+                            
+                            if (direction === 'right') {
+                                if (currentSelectedCell % 3 < 2) {
+                                    currentSelectedCell++;
+                                    game.updateSelectedHighlight();
+                                    showFeedback('👉', 'Moved RIGHT');
+                                } else {
+                                    showFeedback('⚠️', 'At right edge!');
+                                }
+                            } else if (direction === 'left') {
+                                if (currentSelectedCell % 3 > 0) {
+                                    currentSelectedCell--;
+                                    game.updateSelectedHighlight();
+                                    showFeedback('👈', 'Moved LEFT');
+                                } else {
+                                    showFeedback('⚠️', 'At left edge!');
+                                }
+                            }
+                        }
+                        
+                        setTimeout(() => { waveConfirmationX = false; }, 300);
+                    }
+                    
+                    lastDirectionX = direction;
+                    lastWaveTime = now;
+                } else if ((now - lastWaveTime) > 300) {
+                    lastDirectionX = null;
+                    waveConfirmationX = false;
+                }
+            }
+            previousPalmX = palmX;
+            
+            // ============ VERTICAL WAVE ============
+            if (previousPalmY !== null) {
+                const deltaY = palmY - previousPalmY;
+                
+                if (Math.abs(deltaY) > 0.05 && (now - lastWaveTime) > 150) {
+                    const direction = deltaY > 0 ? 'down' : 'up';
+                    
+                    if (lastDirectionY === direction && !waveConfirmationY) {
+                        waveConfirmationY = true;
+                        showDetectedGesture(direction);
+                        
+                        if ((now - lastGestureTime) > GESTURE_COOLDOWN && !game.gameOver && game.currentPlayer === game.playerSymbol) {
+                            lastGestureTime = now;
+                            
+                            if (direction === 'down') {
+                                if (currentSelectedCell < 6) {
+                                    currentSelectedCell += 3;
+                                    game.updateSelectedHighlight();
+                                    showFeedback('👇', 'Moved DOWN');
+                                } else {
+                                    showFeedback('⚠️', 'At bottom edge!');
+                                }
+                            } else if (direction === 'up') {
+                                if (currentSelectedCell > 2) {
+                                    currentSelectedCell -= 3;
+                                    game.updateSelectedHighlight();
+                                    showFeedback('☝️', 'Moved UP');
+                                } else {
+                                    showFeedback('⚠️', 'At top edge!');
+                                }
+                            }
+                        }
+                        
+                        setTimeout(() => { waveConfirmationY = false; }, 300);
+                    }
+                    
+                    lastDirectionY = direction;
+                    lastWaveTime = now;
+                } else if ((now - lastWaveTime) > 300) {
+                    lastDirectionY = null;
+                    waveConfirmationY = false;
+                }
+            }
+            previousPalmY = palmY;
+            
+            // Debug info
+            document.getElementById('debug-info').innerHTML = `Palm: (${palmX.toFixed(3)}, ${palmY.toFixed(3)}) | X:${lastDirectionX || '-'} Y:${lastDirectionY || '-'}`;
+            
+            // ============ OPEN PALM DETECTION ============
+            const fingersExtended = (
+                indexTip.y < wrist.y - 0.08 &&
+                middleTip.y < wrist.y - 0.08 &&
+                ringTip.y < wrist.y - 0.06 &&
+                pinkyTip.y < wrist.y - 0.06
+            );
+            
+            if (fingersExtended && !game.gameOver && game.currentPlayer === game.playerSymbol) {
+                const now = Date.now();
+                if (now - lastGestureTime > GESTURE_COOLDOWN) {
+                    lastGestureTime = now;
+                    showDetectedGesture('place');
+                    const success = game.makeMove(currentSelectedCell);
+                    if (success) {
+                        showFeedback('🤚', `Placed ${game.playerSymbol} on cell ${currentSelectedCell + 1}`);
+                    } else {
+                        showFeedback('❌', 'Cell already taken!');
+                    }
+                }
+            }
+        }
+        
+        function showFeedback(emoji, text) {
+            const statusDiv = document.getElementById('gesture-status');
+            statusDiv.innerHTML = `${emoji} ${text}`;
+            setTimeout(() => {
+                if (document.getElementById('gesture-status').innerHTML === `${emoji} ${text}`) {
+                    statusDiv.innerHTML = '✋ Wave L/R/U/D to move | Open Palm to place';
+                }
+            }, 1500);
+        }
+
+        // ============================================
+        // SETUP MEDIAPIPE
+        // ============================================
+        
+        const videoElement = document.getElementById('webcam');
+        const canvasElement = document.getElementById('canvas');
+        const ctx = canvasElement.getContext('2d');
+        
+        function onResults(results) {
+            if (videoElement.videoWidth === 0) return;
+            
+            canvasElement.width = videoElement.videoWidth;
+            canvasElement.height = videoElement.videoHeight;
+            ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0];
+                
+                ctx.save();
+                ctx.scale(-1, 1);
+                ctx.translate(-canvasElement.width, 0);
+                
+                const connections = [
+                    [0,1], [1,2], [2,3], [3,4],
+                    [0,5], [5,6], [6,7], [7,8],
+                    [0,9], [9,10], [10,11], [11,12],
+                    [0,13], [13,14], [14,15], [15,16],
+                    [0,17], [17,18], [18,19], [19,20]
+                ];
+                
+                for (const conn of connections) {
+                    const start = landmarks[conn[0]];
+                    const end = landmarks[conn[1]];
+                    if (start && end) {
+                        ctx.beginPath();
+                        ctx.moveTo(start.x * canvasElement.width, start.y * canvasElement.height);
+                        ctx.lineTo(end.x * canvasElement.width, end.y * canvasElement.height);
+                        ctx.strokeStyle = '#00ff00';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                    }
+                }
+                
+                for (const landmark of landmarks) {
+                    const x = landmark.x * canvasElement.width;
+                    const y = landmark.y * canvasElement.height;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 5, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#00ff00';
+                    ctx.fill();
+                }
+                
+                ctx.restore();
+                detectGesture(landmarks);
+            }
+        }
+        
+        async function setupCamera() {
+            const hands = new Hands({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+            });
+            
+            hands.setOptions({
+                maxNumHands: 1,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+            
+            hands.onResults(onResults);
+            
+            const camera = new Camera(videoElement, {
+                onFrame: async () => {
+                    await hands.send({ image: videoElement });
+                },
+                width: 640,
+                height: 480
+            });
+            
+            camera.start();
+            document.getElementById('gesture-status').innerHTML = '✋ Camera ready! Wave L/R/U/D to move, Open Palm to place!';
+        }
+        
+        // ============================================
+        // START
+        // ============================================
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            game = new TicTacToe();
+            setupCamera();
+        });
+    </script>
+</body>
+</html>
