@@ -15,7 +15,8 @@ let board = Array(9).fill("");
 let currentPlayer = "X";
 let isGameOver = false;
 let lastGestureTime = 0;
-const gestureDebounceMs = 1100;
+const gestureDebounceMs = 250;
+const gestureConfidenceThreshold = 0.45;
 let videoInputs = [];
 let preferredCameraId = undefined;
 
@@ -297,7 +298,7 @@ async function predictGesture() {
     const className = normalizeClassName(best.className);
     gestureStatus.textContent = `Detected: ${best.className} (${best.probability.toFixed(2)})`;
 
-    if (best.probability < 0.80) return;
+    if (best.probability < gestureConfidenceThreshold) return;
     const index = gestureToIndex[className] ?? gestureToIndex[className.replace(/\s+/g, " ")];
     if (index == null) return;
 
